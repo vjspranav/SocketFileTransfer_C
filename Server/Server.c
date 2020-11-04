@@ -102,11 +102,9 @@ int getFileNames(char* command, char** parsed){
     while(1){
         parsed[i] = strtok(NULL, " ");
         if(parsed[i]==NULL){
-            printf("returning\n");
             return i;
         }
         i+=1;          
-        printf("Parsed %d\n", i);
     }
     return -1;
 }
@@ -157,6 +155,8 @@ int checkandDownload(char* command, int new_socket){
         }
     }
     send(new_socket , lsd, strlen(lsd) , 0 );  // send the message.
+    valread = read(new_socket , buffer, 1024);    
+    send(new_socket , "Server: Transfer Successfull\n", 29, 0 );  // send the message.
     return 0;
 }
 
