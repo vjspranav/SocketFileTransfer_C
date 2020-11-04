@@ -1,17 +1,70 @@
 #include <stdio.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <stdlib.h>
+#include <dirent.h> 
 #include <netinet/in.h>
 #include <string.h>
+#include <unistd.h>
+
 #define PORT 8000
+
+int isFile(const char *path){
+    struct stat ps;
+    stat(path, &ps);
+    return S_ISREG(ps.st_mode);
+}
+
+int ls(int new_socket){
+    int empty=0;
+    char lsd[1024]={0};
+    struct dirent *de;  // Pointer for directory entry 
+    DIR *dr = opendir(".");   
+    if (dr == NULL) 
+    { 
+        printf("Could not open current directory" ); 
+        return 0; 
+    } 
+    while ((de = readdir(dr)) != NULL){ 
+        if((de->d_name[0]!='.') && (strncmp("Server", de->d_name, 6) && strcmp("a.out", de->d_name))){
+            if(isFile(de->d_name)){
+                empty=1;
+                strcat(lsd, de->d_name);   
+                strcat(lsd, "\n");   
+            }
+        }
+    }
+    closedir(dr);     
+    if(!empty)
+        strcat(lsd, "No Downloadable files found\n");
+    send(new_socket , lsd, strlen(lsd) , 0 );  // send the message.
+    return 0; 
+}
+
+int startListening(int new_socket){
+    int valread;
+    char buffer[1024] = {0};
+    char *hello = "Command Not found... Please try again\n";
+    while(strcmp(buffer, "exit")!=0){                
+        memset(buffer, 0, 1024);
+        valread = read(new_socket , buffer, 1024);  // read infromation received into the buffer
+        printf("Clent sent: %s\n",buffer, strlen(buffer));
+        if(strcmp(buffer, "ls")==0){
+            ls(new_socket);
+        }else if(strcmp(buffer, "exit")!=0){
+            send(new_socket , hello , strlen(hello) , 0 );  // send the message.
+        }
+        printf("Waiting for command\n");
+    }
+    printf("Transaction Successful\n");
+}
+
 int main(int argc, char const *argv[])
 {
     int server_fd, new_socket, valread;
     struct sockaddr_in address;  
     int opt = 1;
     int addrlen = sizeof(address);
-    char buffer[1024] = {0};
-    char *hello = "Hello from server";
 
     // Creating socket file descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)  // creates socket, SOCK_STREAM is for TCP. SOCK_DGRAM for UDP
@@ -46,7 +99,7 @@ int main(int argc, char const *argv[])
         perror("listen");
         exit(EXIT_FAILURE);
     }
-
+    printf("Listening for Clients\n");
     // returns a brand new socket file descriptor to use for this single accepted connection. Once done, use send and recv
     if ((new_socket = accept(server_fd, (struct sockaddr *)&address,
                        (socklen_t*)&addrlen))<0)
@@ -55,13 +108,7 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     
     }
-    while(strcmp(buffer, "exit")!=0){                
-        memset(buffer, 0, 1024);
-        valread = read(new_socket , buffer, 1024);  // read infromation received into the buffer
-        printf("Clent sent: %s\nLen: %d",buffer, strlen(buffer));
-        send(new_socket , hello , strlen(hello) , 0 );  // use sendto() and recvfrom() for DGRAM
-        printf("Waiting for reply\n");
-    }
-    printf("Transaction Successful\n");
+    printf("Connection Successfull\n");
+    startListening(new_socket);
     return 0;
 }
