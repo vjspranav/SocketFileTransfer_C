@@ -16,7 +16,7 @@ int startShell(int sock){
     while(1){
         memset(buffer, 0, 1024);
         printf("> ");
-        scanf(" %s", hello);
+        scanf(" %[^\n]s", hello);
         send(sock , hello , strlen(hello) , 0 );  // send the message.
         printf("%s message sent\n", hello);
         if(strcmp(hello, "exit")==0)

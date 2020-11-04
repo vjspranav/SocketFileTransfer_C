@@ -64,6 +64,7 @@ char *mbgb(long long int num){
         return "B";
     }    
 }
+
 int ls(int new_socket){
     int empty=0;
     char lsd[1024]={0};
@@ -93,6 +94,47 @@ int ls(int new_socket){
     return 0; 
 }
 
+int getFileNames(char* command, char** parsed){
+    int i=0;    
+    strtok(command, " ");
+    parsed[i] = strtok(NULL, " ");
+    i+=1;
+    while(1){
+        parsed[i] = strtok(NULL, " ");
+        if(parsed[i]==NULL){
+            printf("returning\n");
+            return 0;
+        }
+        i+=1;          
+        printf("Parsed %d\n", i);
+    }
+    return -1;
+}
+
+int checkFiles(char **parsed){
+    int i=0;
+    printf("File\texists Read\n");
+    while(parsed[i]!=NULL){
+        printf("%s\t", parsed[i]);
+        if( access( parsed[i], F_OK ) != -1 )
+            printf("%d\t%d\n", 1, (access(parsed[i], F_OK)!=-1)?1:0);
+        else
+            printf("0\t0\n");
+        i+=1;
+    }
+}
+
+int checkandDownload(char* command, int new_socket){
+    char *parsed[1000];
+    char *lsd="Done";
+    int i=0;
+    printf("Sending\n");
+    getFileNames(command, parsed);
+    checkFiles(parsed);
+    printf("\n");
+    send(new_socket , lsd, strlen(lsd) , 0 );  // send the message.
+}
+
 int startListening(int new_socket){
     int valread;
     char buffer[1024] = {0};
@@ -103,6 +145,8 @@ int startListening(int new_socket){
         printf("Clent sent: %s\n",buffer, strlen(buffer));
         if(strcmp(buffer, "ls")==0){
             ls(new_socket);
+        }else if(strncmp("get", buffer, 3)==0){
+            checkandDownload(buffer, new_socket);
         }else if(strcmp(buffer, "exit")!=0){
             send(new_socket , hello , strlen(hello) , 0 );  // send the message.
         }
