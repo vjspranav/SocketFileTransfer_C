@@ -9,6 +9,30 @@
 
 #define PORT 8000
 
+int recieveFiles(int sock){
+    char buffer[1024] = {0};
+    int valread;
+    printf("Awaiting Signal from server\n");
+    while(1){
+        memset(buffer, 0, 1024);
+        valread = read( sock , buffer, 1024);
+        if(strcmp(buffer, "Ready")==0){
+            printf("Reciving File\n");
+            send(sock , "done", 4, 0 );    
+        }else if(strcmp(buffer, "Done")==0){
+            printf("Recived Files\n");
+            send(sock , "Thank you\n", 10, 0 );    
+            return 0;
+        }else if(strcmp(buffer, "Failed")==0){
+            printf("This File doesn't exist or is missing permission\n");
+            send(sock , "done", 4, 0 );    
+        }else
+            break;
+    }
+    printf("Something went Wrong\n");
+    return -1;
+}
+
 int startShell(int sock){
     char hello[200];
     char buffer[1024] = {0};
@@ -19,6 +43,8 @@ int startShell(int sock){
         scanf(" %[^\n]s", hello);
         send(sock , hello , strlen(hello) , 0 );  // send the message.
         printf("%s message sent\n", hello);
+        if(strncmp("get", hello, 3)==0)
+            recieveFiles(sock);
         if(strcmp(hello, "exit")==0)
             break;
         valread = read( sock , buffer, 1024);  // receive message back from server, into the buffer
@@ -27,6 +53,7 @@ int startShell(int sock){
     printf("Transaction ended successfully\n");
     return 0;
 }
+
 int main(int argc, char const *argv[])
 {
     struct sockaddr_in address;

@@ -103,7 +103,7 @@ int getFileNames(char* command, char** parsed){
         parsed[i] = strtok(NULL, " ");
         if(parsed[i]==NULL){
             printf("returning\n");
-            return 0;
+            return i;
         }
         i+=1;          
         printf("Parsed %d\n", i);
@@ -111,28 +111,53 @@ int getFileNames(char* command, char** parsed){
     return -1;
 }
 
-int checkFiles(char **parsed){
+int checkFiles(char **parsed, int numFiles[][2]){
     int i=0;
     printf("File\texists Read\n");
     while(parsed[i]!=NULL){
         printf("%s\t", parsed[i]);
-        if( access( parsed[i], F_OK ) != -1 )
-            printf("%d\t%d\n", 1, (access(parsed[i], F_OK)!=-1)?1:0);
-        else
-            printf("0\t0\n");
+        if( access( parsed[i], F_OK ) != -1 ){
+            numFiles[i][0]=1;
+            numFiles[i][1]=(access(parsed[i], F_OK)!=-1)?1:0;
+        }else{
+            numFiles[i][0]=0;
+            numFiles[i][1]=0;
+        }
+        printf("%d\t%d\n", numFiles[i][0], numFiles[i][1]);
         i+=1;
     }
 }
 
 int checkandDownload(char* command, int new_socket){
+    int valread;
+    char buffer[1024] = {0};
     char *parsed[1000];
+    char *rsd="Ready";
     char *lsd="Done";
+    char *fsd="Failed";
     int i=0;
     printf("Sending\n");
-    getFileNames(command, parsed);
-    checkFiles(parsed);
+    int numFiles=getFileNames(command, parsed);
+    int FileS[numFiles][2];
+    checkFiles(parsed, FileS);
     printf("\n");
+    for(i=0;i<numFiles;i++){
+        memset(buffer, 0, 1024);
+        if(FileS[i][0] && FileS[i][1]){
+            send(new_socket, rsd, strlen(rsd), 0);
+            // Send File
+            valread = read(new_socket , buffer, 1024);    
+            if(strcmp(buffer, "done")==0)
+                printf("File %s Sent successfully\nNext\n", parsed[i]);
+        }else{
+            send(new_socket, fsd, strlen(fsd), 0);
+            valread = read(new_socket , buffer, 1024);    
+            if(strcmp(buffer, "done")==0)
+                printf("File %s could not be sent\nNext\n", parsed[i]);
+        }
+    }
     send(new_socket , lsd, strlen(lsd) , 0 );  // send the message.
+    return 0;
 }
 
 int startListening(int new_socket){
