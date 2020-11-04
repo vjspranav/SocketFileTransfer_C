@@ -8,6 +8,10 @@
 #include <unistd.h>
 
 #define PORT 8000
+#define BYTE 0
+#define KB 1
+#define MB 2
+#define GB 3
 
 int isFile(const char *path){
     struct stat ps;
@@ -15,10 +19,56 @@ int isFile(const char *path){
     return S_ISREG(ps.st_mode);
 }
 
+float convert(float num){
+    int type=BYTE;
+    if(num>1024){
+        type=KB;
+        num=num/1024;
+        if(num>1024){
+            type=MB;
+            num=num/1024;
+            if(num>1024){
+                type=GB;
+                num=num/1024;
+                return num;
+            }else{
+                return num;
+            }
+        }else{
+            return num;
+        }
+    }else{
+        return num;
+    }   
+}
+
+char *mbgb(long long int num){
+    int type=BYTE;
+    if(num>1024){
+        type=KB;
+        num=num/1024;
+        if(num>1024){
+            type=MB;
+            num=num/1024;
+            if(num>1024){
+                type=GB;
+                num=num/124;
+                return "GB";
+            }else{
+                return "MB";
+            }
+        }else{
+            return "KB";
+        }
+    }else{
+        return "B";
+    }    
+}
 int ls(int new_socket){
     int empty=0;
     char lsd[1024]={0};
     struct dirent *de;  // Pointer for directory entry 
+    struct stat fs;    
     DIR *dr = opendir(".");   
     if (dr == NULL) 
     { 
@@ -29,8 +79,10 @@ int ls(int new_socket){
         if((de->d_name[0]!='.') && (strncmp("Server", de->d_name, 6) && strcmp("a.out", de->d_name))){
             if(isFile(de->d_name)){
                 empty=1;
-                strcat(lsd, de->d_name);   
-                strcat(lsd, "\n");   
+                stat(de->d_name,&fs); 
+                char str[1024];
+                sprintf(str, "%s\t%.1f %s\n", de->d_name, convert(fs.st_size), mbgb(fs.st_size));
+                strcat(lsd, str);   
             }
         }
     }
