@@ -13,6 +13,12 @@
 #define MB 2
 #define GB 3
 
+typedef struct fSend{
+    int numLoops;
+    int progress;
+    char filename[1024];
+}fSend;
+
 int isFile(const char *path){
     struct stat ps;
     stat(path, &ps);
@@ -126,6 +132,34 @@ int checkFiles(char **parsed, int numFiles[][2]){
     }
 }
 
+int sendFile(int new_socket, char* path){
+    int i, valread;
+    char *nsd="Next";
+    char buffer[1024]={0};
+    fSend file;
+    valread = read(new_socket , buffer, 1024);
+    printf("Recieved Go ahead\n");
+    strcpy(file.filename, path);
+    file.numLoops=6;
+    printf("%s\n", file.filename);
+    send(new_socket, &file, sizeof(struct fSend), 0);
+    printf("Sent file name %s\n", file.filename);
+    memset(buffer, 0, 1024);
+    valread = read(new_socket , buffer, 1024);
+    if(strcmp(buffer, nsd)!=0){
+        printf("Something went wrong exiting\n");
+        return -1;
+    }
+    for(i=0;i<file.numLoops;i++){
+        file.progress=((i+1)*100)/file.numLoops;
+        printf("Progress: %d\n", file.progress);
+        send(new_socket, &file, sizeof(struct fSend), 0);
+        printf("After send in loop\n");
+        valread = read(new_socket , buffer, 1024);
+        printf("Here %d\n", i);
+    }
+}
+
 int checkandDownload(char* command, int new_socket){
     int valread;
     char buffer[1024] = {0};
@@ -143,7 +177,7 @@ int checkandDownload(char* command, int new_socket){
         memset(buffer, 0, 1024);
         if(FileS[i][0] && FileS[i][1]){
             send(new_socket, rsd, strlen(rsd), 0);
-            // Send File
+            sendFile(new_socket, parsed[i]);
             valread = read(new_socket , buffer, 1024);    
             if(strcmp(buffer, "done")==0)
                 printf("File %s Sent successfully\nNext\n", parsed[i]);

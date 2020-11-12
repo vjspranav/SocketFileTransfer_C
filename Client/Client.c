@@ -9,6 +9,30 @@
 
 #define PORT 8000
 
+typedef struct fRecieve{
+    int numLoops;
+    int progress;
+    char filename[1024];
+}f;
+
+int rFile(int sock){
+    int i;
+    f file;
+    int valread;
+    char *nsd="Next";
+    send(sock, nsd, 4, 0);
+    valread = read(sock , &file, sizeof(struct fRecieve));
+    printf("Recieving %s\n", file.filename);
+    send(sock, nsd, 4, 0);
+    for(i=0;i<file.numLoops;i++){
+        memset(&file, 0, sizeof(struct fRecieve));
+        valread = read(sock , &file, sizeof(struct fRecieve));
+        printf("Progress: %d\n", file.progress);
+        send(sock, nsd, 4, 0);
+    }
+    return 0;
+}
+
 int recieveFiles(int sock){
     char buffer[1024] = {0};
     int valread;
@@ -18,6 +42,7 @@ int recieveFiles(int sock){
         valread = read( sock , buffer, 1024);
         if(strcmp(buffer, "Ready")==0){
             printf("Reciving File\n");
+            rFile(sock);
             send(sock , "done", 4, 0 );    
         }else if(strcmp(buffer, "Done")==0){
             printf("Recived Files\n");
@@ -26,8 +51,10 @@ int recieveFiles(int sock){
         }else if(strcmp(buffer, "Failed")==0){
             printf("This File doesn't exist or is missing permission\n");
             send(sock , "done", 4, 0 );    
-        }else
+        }else{
+            printf("buffer=%s\n", buffer);
             break;
+        }
     }
     printf("Something went Wrong\n");
     return -1;
@@ -41,10 +68,17 @@ int startShell(int sock){
         memset(buffer, 0, 1024);
         printf("> ");
         scanf(" %[^\n]s", hello);
-        send(sock , hello , strlen(hello) , 0 );  // send the message.
+        if(strcmp("get", hello)!=0)
+            send(sock , hello , strlen(hello) , 0 );  // send the message.
         printf("%s message sent\n", hello);
-        if(strncmp("get", hello, 3)==0)
-            recieveFiles(sock);
+        if(strncmp("get", hello, 3)==0){
+            if(strcmp("get", hello)!=0)
+                recieveFiles(sock);
+            else{
+                printf("No filename provided\n");
+                continue;
+            }
+        }
         if(strcmp(hello, "exit")==0)
             break;
         valread = read( sock , buffer, 1024);  // receive message back from server, into the buffer
