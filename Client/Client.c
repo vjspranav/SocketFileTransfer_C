@@ -76,6 +76,7 @@ int recieveFiles(int sock){
     return -1;
 }
 
+// Starts a simple shell that accepts command and sends to server
 int startShell(int sock){
     char hello[200];
     char buffer[1024] = {0};
