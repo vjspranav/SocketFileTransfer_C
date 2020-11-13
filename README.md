@@ -4,7 +4,8 @@ A simple C code to transfer files through a client server connection.
 As this program is spread over Server and client, we'll need two terminals.  
 One in Server Folder and one in Client Folder.  
 > Make sure the files you want to download exist in Server folder.  
-**Server**
+
+**Server**  
 In terminal open in Server Folder
 ```
 gcc Server.c -o Server
@@ -17,7 +18,7 @@ Listening for Clients
 ```
 Perfect, now time to start a Client.  
   
-**Client**
+**Client**  
 In terminal open in Client Folder
 ```
 gcc Client.c -o Client
