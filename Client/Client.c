@@ -7,16 +7,22 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <fcntl.h> 
+
 #define PORT 8000
+
+#define MAXSIZE 62000
 
 typedef struct fRecieve{
     int numLoops;
     int progress;
     char filename[1024];
+    char buffer[MAXSIZE];
+    int cursize;
 }f;
 
 int rFile(int sock){
-    int i;
+    int i, numloops;
     f file;
     int valread;
     char *nsd="Next";
@@ -24,12 +30,18 @@ int rFile(int sock){
     valread = read(sock , &file, sizeof(struct fRecieve));
     printf("Recieving %s\n", file.filename);
     send(sock, nsd, 4, 0);
-    for(i=0;i<file.numLoops;i++){
+    numloops=file.numLoops;
+    printf("Numloops = %d\n", numloops);
+    for(i=0;i<numloops;i++){
         memset(&file, 0, sizeof(struct fRecieve));
         valread = read(sock , &file, sizeof(struct fRecieve));
-        printf("Progress: %d\n", file.progress);
+        //printf("%d, %d, %s, %s, %d\n", file.numLoops, file.progress, file.filename, file.buffer, file.cursize);
+        printf("\rProgress: %d", file.progress);
         send(sock, nsd, 4, 0);
+        //printf("\nSent Next\n");
     }
+    printf("\nWaiting for exit signal\n");
+    valread = read(sock , &file, sizeof(struct fRecieve));   
     return 0;
 }
 
@@ -43,7 +55,8 @@ int recieveFiles(int sock){
         if(strcmp(buffer, "Ready")==0){
             printf("Reciving File\n");
             rFile(sock);
-            send(sock , "done", 4, 0 );    
+            send(sock , "done", 4, 0 ); 
+            printf("Sent done\n");
         }else if(strcmp(buffer, "Done")==0){
             printf("Recived Files\n");
             send(sock , "Thank you\n", 10, 0 );    

@@ -7,16 +7,23 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <fcntl.h> 
+#include <errno.h>
+
 #define PORT 8000
 #define BYTE 0
 #define KB 1
 #define MB 2
 #define GB 3
 
+#define MAXSIZE 62000
+
 typedef struct fSend{
     int numLoops;
     int progress;
     char filename[1024];
+    char buff[MAXSIZE];
+    int cursize;
 }fSend;
 
 int isFile(const char *path){
@@ -140,7 +147,16 @@ int sendFile(int new_socket, char* path){
     valread = read(new_socket , buffer, 1024);
     printf("Recieved Go ahead\n");
     strcpy(file.filename, path);
-    file.numLoops=6;
+
+    // Getting file size and details
+    int input = open(path, O_RDONLY);
+    off_t tsize = lseek(input, 0, SEEK_END);
+    file.numLoops=1;
+    // If file size is greater then max size then increase num loops
+    int numLoops;
+    if(tsize>MAXSIZE)
+         file.numLoops=(tsize/MAXSIZE) + 1;
+    printf("tsize=%lld, MAXSIZE=%d, Numloops = %d\n", tsize, MAXSIZE, file.numLoops);
     printf("%s\n", file.filename);
     send(new_socket, &file, sizeof(struct fSend), 0);
     printf("Sent file name %s\n", file.filename);
@@ -152,12 +168,15 @@ int sendFile(int new_socket, char* path){
     }
     for(i=0;i<file.numLoops;i++){
         file.progress=((i+1)*100)/file.numLoops;
-        printf("Progress: %d\n", file.progress);
+        printf("\rProgress: %d", file.progress);
         send(new_socket, &file, sizeof(struct fSend), 0);
-        printf("After send in loop\n");
+        //printf("After send in loop\n");
         valread = read(new_socket , buffer, 1024);
-        printf("Here %d\n", i);
+        //printf("Here %d, Buffer=%s\n", i+1, buffer);
+        //sleep(1);
     }
+    // Buffer send to maintain alternative send recieve
+    send(new_socket, &file, sizeof(struct fSend), 0);
 }
 
 int checkandDownload(char* command, int new_socket){
@@ -188,8 +207,11 @@ int checkandDownload(char* command, int new_socket){
                 printf("File %s could not be sent\nNext\n", parsed[i]);
         }
     }
+    printf("Sending Done\n");
     send(new_socket , lsd, strlen(lsd) , 0 );  // send the message.
+    printf("Awaiting Thankyou\n");
     valread = read(new_socket , buffer, 1024);    
+    printf("recv: %s\n", buffer);
     send(new_socket , "Server: Transfer Successfull\n", 29, 0 );  // send the message.
     return 0;
 }
