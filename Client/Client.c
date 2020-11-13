@@ -17,7 +17,7 @@ typedef struct fRecieve{
     int numLoops;
     int progress;
     char filename[1024];
-    char buffer[MAXSIZE];
+    char buff[MAXSIZE];
     int cursize;
 }f;
 
@@ -29,6 +29,7 @@ int rFile(int sock){
     send(sock, nsd, 4, 0);
     valread = read(sock , &file, sizeof(struct fRecieve));
     printf("Recieving %s\n", file.filename);
+    int output =  open(file.filename, O_CREAT | O_RDWR | O_TRUNC, S_IRUSR | S_IWUSR);
     send(sock, nsd, 4, 0);
     numloops=file.numLoops;
     printf("Numloops = %d\n", numloops);
@@ -37,9 +38,11 @@ int rFile(int sock){
         valread = read(sock , &file, sizeof(struct fRecieve));
         //printf("%d, %d, %s, %s, %d\n", file.numLoops, file.progress, file.filename, file.buffer, file.cursize);
         printf("\rProgress: %d", file.progress);
+        write(output, file.buff, file.cursize);
         send(sock, nsd, 4, 0);
         //printf("\nSent Next\n");
     }
+    close(output);
     printf("\nWaiting for exit signal\n");
     valread = read(sock , &file, sizeof(struct fRecieve));   
     return 0;

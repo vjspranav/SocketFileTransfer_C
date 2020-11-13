@@ -166,8 +166,20 @@ int sendFile(int new_socket, char* path){
         printf("Something went wrong exiting\n");
         return -1;
     }
+    // remaining size
+    off_t rsize=tsize;
     for(i=0;i<file.numLoops;i++){
         file.progress=((i+1)*100)/file.numLoops;
+        if(rsize>MAXSIZE){
+            lseek(input, tsize-rsize, SEEK_SET);
+            read(input, file.buff, MAXSIZE);
+            file.cursize=MAXSIZE;
+            rsize-=MAXSIZE;
+        }else{
+            lseek(input, tsize-rsize, SEEK_SET);
+            read(input, file.buff, rsize);
+            file.cursize=rsize;
+        }
         printf("\rProgress: %d", file.progress);
         send(new_socket, &file, sizeof(struct fSend), 0);
         //printf("After send in loop\n");
@@ -175,6 +187,7 @@ int sendFile(int new_socket, char* path){
         //printf("Here %d, Buffer=%s\n", i+1, buffer);
         //sleep(1);
     }
+    close(input);
     printf("\n");
     // Buffer send to maintain alternative send recieve
     send(new_socket, &file, sizeof(struct fSend), 0);
