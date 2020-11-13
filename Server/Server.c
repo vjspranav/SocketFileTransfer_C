@@ -175,6 +175,7 @@ int sendFile(int new_socket, char* path){
         //printf("Here %d, Buffer=%s\n", i+1, buffer);
         //sleep(1);
     }
+    printf("\n");
     // Buffer send to maintain alternative send recieve
     send(new_socket, &file, sizeof(struct fSend), 0);
 }
